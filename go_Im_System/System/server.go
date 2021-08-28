@@ -1,7 +1,6 @@
-package ImServer
+package System
 
 import (
-	"Go_Developer/go_Im_System/Imuser"
 	"fmt"
 	"io"
 	"net"
@@ -12,7 +11,7 @@ type Server struct {
 	IP   string
 	Port int
 	// 在线用户的列表
-	OnlineMap map[string]*Imuser.User
+	OnlineMap map[string]*User
 	MpLock    sync.RWMutex
 
 	//消息广播channel
@@ -24,7 +23,7 @@ func NewServer(ip string, port int) *Server {
 	return &Server{
 		IP:        ip,
 		Port:      port,
-		OnlineMap: make(map[string]*Imuser.User),
+		OnlineMap: make(map[string]*User),
 		Message:   make(chan string),
 	}
 }
@@ -33,11 +32,8 @@ func NewServer(ip string, port int) *Server {
 func (server *Server) Handle(conn net.Conn) {
 	fmt.Println(conn.RemoteAddr().String() + "连接成功")
 	// 用户上线 将用户加入 onlinemap中
-	user := Imuser.NewUser(conn)
-	server.MpLock.Lock()
-	server.OnlineMap[user.Name] = user
-	server.MpLock.Unlock()
-	server.BroadCast(user, "上线了")
+	user := NewUser(conn, server)
+	user.Online()
 	go func() {
 		byteValus := make([]byte, 4096)
 		for {
@@ -46,11 +42,12 @@ func (server *Server) Handle(conn net.Conn) {
 				fmt.Println("conn read err:", err)
 			}
 			if n == 0 {
-				server.BroadCast(user, "下线")
+				user.Offline()
 				return
 			}
+			// 获取用户的消息('\n')
 			msg := string(byteValus[:n])
-			server.BroadCast(user, msg)
+			user.DoMessage(msg)
 		}
 	}()
 
@@ -70,7 +67,7 @@ func (server *Server) ListenMesage() {
 }
 
 // BroadCast 消息广播
-func (server *Server) BroadCast(user *Imuser.User, msg string) {
+func (server *Server) BroadCast(user *User, msg string) {
 	sendMsg := "[" + user.Addr + "]" + user.Name + ":" + msg
 	fmt.Println(sendMsg)
 	// 想Message 中发送消息  所以应该有一个监听MessAge的方法
