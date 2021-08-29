@@ -62,47 +62,73 @@ func (user *User) SendMsg(msg string) {
 func (user *User) DoMessage(msg string) {
 	trimSpaceMsg := strings.TrimSpace(msg)
 	if trimSpaceMsg == "who" {
-		//用户在线查询
-		user.server.MpLock.Lock()
-		for _, user1 := range user.server.OnlineMap {
-			// 去除当前客户端的在线信息
-			fmt.Println("用户姓名:", user1.Name, "user姓名：", user.Name)
-			if strings.TrimSpace(user.Name) != strings.TrimSpace(user1.Name) {
-				onlineMsg := "[" + user1.Addr + "]" + strings.TrimSpace(user1.Name) + ":" + "在线\n"
-				user.SendMsg(onlineMsg)
-			}
-		}
-		user.server.MpLock.Unlock()
-		//用户名更改
-	} else if strings.Contains(trimSpaceMsg, "rename") {
-		name := strings.Contains(trimSpaceMsg, "#")
-		if name {
-			newName := strings.Split(trimSpaceMsg, "#")[1]
-			if len(strings.TrimSpace(newName)) > 0 {
-				//判断用户名是否被占用
-				if _, ok := user.server.OnlineMap[newName]; ok {
-					msg := fmt.Sprintf("%s被占用", newName)
-					user.SendMsg(msg)
-				} else {
-					user.server.MpLock.Lock()
-					delete(user.server.OnlineMap, user.Name)
-					fmt.Println()
-					user.server.OnlineMap[newName] = user
-					user.server.MpLock.Unlock()
-					user.Name = newName
-					user.SendMsg("修改成功\n")
-				}
-			} else {
-				user.SendMsg("用户名不能为空,请从新输入\n")
-			}
-		} else {
-			msg := "输入的格式有误 正确格式 rename#newName\n"
-			user.SendMsg(msg)
-		}
-
+		UserListOnline(user, trimSpaceMsg)
+	} else if strings.HasPrefix(trimSpaceMsg, "rename") {
+		ChangeUserName(user, trimSpaceMsg)
+	} else if strings.HasPrefix(trimSpaceMsg, "to") {
+		PrivateChat(user, trimSpaceMsg)
 	} else {
-		// 用户群聊广播
 		user.server.BroadCast(user, msg)
 	}
+
+}
+
+//在线用户查询
+func UserListOnline(user *User, msg string) {
+	//用户在线查询
+	user.server.MpLock.Lock()
+	for _, user1 := range user.server.OnlineMap {
+		// 去除当前客户端的在线信息
+		if strings.TrimSpace(user.Name) != strings.TrimSpace(user1.Name) {
+			onlineMsg := "[" + user1.Addr + "]" + strings.TrimSpace(user1.Name) + ":" + "在线\n"
+			user.SendMsg(onlineMsg)
+		}
+	}
+	user.server.MpLock.Unlock()
+}
+
+// 用户名更改
+func ChangeUserName(user *User, msg string) {
+	name := strings.Contains(msg, "#")
+	if name {
+		newName := strings.Split(msg, "#")[1]
+		if len(strings.TrimSpace(newName)) > 0 {
+			//判断用户名是否被占用
+			if _, ok := user.server.OnlineMap[newName]; ok {
+				msg := fmt.Sprintf("%s被占用", newName)
+				user.SendMsg(msg)
+			} else {
+				user.server.MpLock.Lock()
+				delete(user.server.OnlineMap, user.Name)
+				user.server.OnlineMap[strings.TrimSpace(newName)] = user
+				user.server.MpLock.Unlock()
+				user.Name = strings.TrimSpace(newName)
+				user.SendMsg("修改成功\n")
+			}
+		} else {
+			user.SendMsg("用户名不能为空,请从新输入\n")
+		}
+	} else {
+		msg := "输入的格式有误 正确格式 'rename#newName'\n"
+		user.SendMsg(msg)
+	}
+}
+
+//私聊功能
+func PrivateChat(user *User, msg string) {
+	msgSplitlist := strings.Split(msg, "#")
+	remoteName := msgSplitlist[1]
+	privateMsg := msgSplitlist[2]
+	if remoteName == "" || len(strings.TrimSpace(privateMsg)) <= 0 {
+		user.SendMsg("消息格式不正确或消息不能为空，请使用 'to#张三#消息' 格式\n")
+		return
+	}
+	remoterUser, ok := user.server.OnlineMap[remoteName]
+	if !ok {
+		user.SendMsg("该用户不存在")
+		return
+	}
+	// 获取消息内容病发送过去
+	remoterUser.conn.Write([]byte(user.Name + ":" + privateMsg + "\n"))
 
 }

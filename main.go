@@ -10,9 +10,10 @@ func main() {
 	//go CeshiTime()
 	//
 	//time.Sleep(30*time.Second)
-	str := "rename#hh"
-	res := strings.Split(str, "#")[1]
+	str := "to#姓名# "
+	res := strings.Split(strings.TrimSpace(str), "#")
 	fmt.Println(res)
+	fmt.Println(len(res))
 }
 
 func CeshiTime() {
