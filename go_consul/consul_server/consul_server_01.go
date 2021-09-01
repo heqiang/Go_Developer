@@ -15,7 +15,7 @@ type Child struct {
 
 //绑定类方法，实现接口
 func (child *Child) SayHello(ctx context.Context, person *pb.Person) (*pb.Person, error) {
-	person.Name = "HELLO" + person.Name
+	person.Name = "HELLO:" + person.Name
 	return person, nil
 }
 
