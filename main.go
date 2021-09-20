@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"strings"
+	"os"
+	"runtime"
 	"time"
 )
 
@@ -10,10 +11,15 @@ func main() {
 	//go CeshiTime()
 	//
 	//time.Sleep(30*time.Second)
-	str := "to#姓名# "
-	res := strings.Split(strings.TrimSpace(str), "#")
-	fmt.Println(res)
-	fmt.Println(len(res))
+	//str := "to#姓名# "
+	//res := strings.Split(strings.TrimSpace(str), "#")
+	//fmt.Println(res)
+	//fmt.Println(len(res))
+
+	_, fileStr, _, _ := runtime.Caller(1)
+	fmt.Println(fileStr)
+	dir, _ := os.Getwd()
+	fmt.Println(dir)
 }
 
 func CeshiTime() {
