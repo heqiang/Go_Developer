@@ -27,7 +27,7 @@ func InitLogger(cfg *config.LogConfig) (err error) {
 		return
 	}
 	core := zapcore.NewCore(encoder, writeSyncer, l)
-
+	// zap.AddCaller 可以返回调用日志的具体文件及哪一行调用了日志
 	lg = zap.New(core, zap.AddCaller())
 	zap.ReplaceGlobals(lg) // 替换zap包中全局的logger实例，后续在其他包中只需使用zap.L()调用即可
 	return
